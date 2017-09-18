@@ -1,7 +1,6 @@
 // MIT LICENSE
 // based on https://github.com/moltak/mongoose-autoincrement
 
-
 const rx = require('rx');
 const mongoose = require('mongoose');
 
@@ -59,7 +58,7 @@ function autoIncrement(schema, options) {
                     if(doc.isModified(fieldName)){
                         console.log('invalidating field');
                         doc.invalidate(fieldName,'You may not modify the auto-increment field `'+fieldName+'` ');
-                        doc.$ignore(fieldName);
+                        // doc.$ignore(fieldName);
                     }
                 }else{
                     delete doc.__allowChange;
