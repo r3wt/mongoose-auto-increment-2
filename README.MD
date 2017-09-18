@@ -1,7 +1,7 @@
 ### download
 -------
 ```js
-npm i --save mongoose-auto-increment
+npm i --save mongoose-auto-increment-2
 ```
 
 ### why
@@ -20,7 +20,7 @@ npm i --save mongoose-auto-increment
 ```js
 
 var mongoose = require('mongoose');
-var autoincrement = require('mongoose-auto-increment');
+var autoincrement = require('mongoose-auto-increment-2');
 var PersonSchema = new mongoose.Schema({
      name : { type: String }
 });
@@ -40,6 +40,6 @@ Person.heal().then((numSaved)=>{
 ```
 **changing name of collection**
 ```js
-var autoincrement = require('mongoose-auto-increment');
+var autoincrement = require('mongoose-auto-increment-2');
 autoincrement.setCollection('custom-counters');
 ```

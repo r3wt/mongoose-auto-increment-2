@@ -1,5 +1,5 @@
 {
-  "name": "mongoose-auto-increment",
+  "name": "mongoose-auto-increment-2",
   "version": "1.0.0",
   "description": "yet another autoincrement plugin for mongoose",
   "main": "index.js",
@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/r3wt/mongoose-auto-increment.git"
+    "url": "git+https://github.com/r3wt/mongoose-auto-increment-2.git"
   },
   "keywords": [
     "mongoose",

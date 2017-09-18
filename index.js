@@ -9,17 +9,13 @@ var countersCollection = 'counters';//the name of the collection used to store i
 function autoIncrement(schema, options) {
 
     var fieldName = options.field || '_id';
-
-    var definition = {
+    
+    // add the field to model.
+    schema.add({
         [fieldName]:{
             type: Number,
         }
-    };
-
-    console.log(definition);
-    
-    // add the field to model.
-    schema.add(definition);
+    });
 
     schema.index({ [fieldName]: 1 },{
         partialFilterExpression: {
@@ -75,17 +71,12 @@ function autoIncrement(schema, options) {
 
             ready().then(()=>{
                 console.log('ready()');
-        
-                var filter1 = {},
-                    filter2 = {};
-                
-                filter1[fieldName] = {$exists: false};
-                filter2[fieldName] = null;
+
                 // this = the mongoose model
                 this.find({
                     $or: [
-                        filter1,
-                        filter2
+                        { [fieldName] : { $exists: false } },
+                        { [fieldName] : null }
                     ]
                 }).exec().then((docs)=>{
                     console.log(docs);
@@ -103,7 +94,7 @@ function autoIncrement(schema, options) {
                             doc.save(function(err){
                                 console.log(err)
                                 cb();
-                            })
+                            });
                         });
                     },()=>{
                         resolve(numSaved);
@@ -137,7 +128,7 @@ function ready(){
 syncEach()
 
 simple synchronous iterator. used by heal to iterate the documents that must be updated. 
-done synchronously to avoid to much contention
+done synchronously to avoid too much contention
 
 */
 function syncEach( items, eachFn, callbackFn ){
