@@ -1,6 +1,6 @@
 {
   "name": "mongoose-auto-increment-2",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "yet another autoincrement plugin for mongoose",
   "main": "index.js",
   "scripts": {
