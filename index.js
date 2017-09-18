@@ -186,7 +186,7 @@ autoIncrement.setCollection = function( collection ){
 };
 
 //force ready() if heal() isnt working
-autoIncrement.ready() = function(){
+autoIncrement.ready = function(){
     forceReady = true;
 };
 
