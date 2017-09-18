@@ -2,8 +2,9 @@
 // based on https://github.com/moltak/mongoose-autoincrement
 
 const rx = require('rx');
-const mongoose = require('mongoose');
+var mongoose = require('mongoose');
 
+var forceReady = false;
 var countersCollection = 'counters';//the name of the collection used to store id counters.
 
 function autoIncrement(schema, options) {
@@ -114,10 +115,12 @@ It is necessary to wait until the connection is ready before
 allowing getNextSeqObservable to be called. else a stackoverflow occurs.
 */
 function ready(){
+    console.log('ready()');
     return new Promise((resolve,reject)=>{
         var _int = setInterval(()=>{
-            if(mongoose.connection.readyState == 1){
+            if(mongoose.connection.readyState == 1 || forceReady){
                 clearInterval(_int);
+                console.log('mongoose connected ready().resolve()')
                 resolve();
             }
         },200);
@@ -180,6 +183,11 @@ function getNextSeqObservable(db, name) {
 //allow user to change the name of counters collection
 autoIncrement.setCollection = function( collection ){
     countersCollection = collection;
+};
+
+//force ready() if heal() isnt working
+autoIncrement.ready() = function(){
+    forceReady = true;
 };
 
 module.exports = autoIncrement;
