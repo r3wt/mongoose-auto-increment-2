@@ -3,6 +3,8 @@
 
 
 const rx = require('rx');
+const mongoose = require('mongoose');
+
 var countersCollection = 'counters';
 
 function autoIncrement(schema, options) {
@@ -25,72 +27,105 @@ function autoIncrement(schema, options) {
 
     schema.add(field);
 
-    console.log(schema.obj)
+    console.log(schema.obj);
 
     schema.pre('save', function (next) {
-        console.log('pre.save')
-        var doc = this;
-        if (doc.db && doc.isNew && typeof doc[fieldName] === 'undefined') {
-            getNextSeqObservable(doc.db.db, doc.collection.name)
-            .retryWhen(err => {
-                console.log(err);
-                return err;
-            })
-            .subscribe(seq => {
-                console.log(seq);
-                doc[fieldName] = seq;
-                next();
-            });
-        } else {
-            //heal sets doc.__allowChange to true in order to bypass this check.
-            if(!doc.__allowChange){
-                if(doc.isModified(fieldName)){
-                    doc.invalidate(fieldName,'You may not modify the auto-increment field `'+fieldName+'` ');
+        console.log('pre.save');
+        ready().then(()=>{
+
+            var doc = this;
+            if (doc.db && doc.isNew && typeof doc[fieldName] === 'undefined') {
+                getNextSeqObservable(doc.db.db, doc.collection.name)
+                .retryWhen(err => {
+                    console.log(err);
+                    return err;
+                })
+                .subscribe(seq => {
+                    console.log(seq);
+                    doc[fieldName] = seq;
+                    next();
+                });
+            } else {
+                //heal sets doc.__allowChange to true in order to bypass this check.
+                if(!doc.__allowChange){
+                    if(doc.isModified(fieldName)){
+                        doc.invalidate(fieldName,'You may not modify the auto-increment field `'+fieldName+'` ');
+                    }
                 }
+                next();
             }
-            next();
-        }
+
+        });
     });
 
     schema.statics.heal = function(){
         console.log('schema.statics.heal');
         return new Promise((resolve,reject)=>{
-            var filter1 = {},
-                filter2 = {};
+
+            ready().then(()=>{
             
-            filter1[fieldName] = {$exists: false};
-            filter2[fieldName] = null;
-            // this = the mongoose model
-            this.find({
-                $or: [
-                    filter1,
-                    filter2
-                ]
-            }).exec().then((docs)=>{
+        
+                var filter1 = {},
+                    filter2 = {};
+                
+                filter1[fieldName] = {$exists: false};
+                filter2[fieldName] = null;
+                // this = the mongoose model
+                this.find({
+                    $or: [
+                        filter1,
+                        filter2
+                    ]
+                }).exec().then((docs)=>{
 
-                var numSaved = docs.length;
-                syncEach(docs,(doc,cb)=>{
-                    doc.__allowChange = true;//so the pre check wont fail because its not new and its changed.
-                    getNextSeqObservable(doc.db.db,obj.collection)
-                    .retryWhen(err => {
-                        return err;
-                    })
-                    .subscribe(seq => {
-                        doc.id = seq;
-                        doc.save(function(){
-                            cb();
+                    var numSaved = docs.length;
+                    syncEach(docs,(doc,cb)=>{
+                        doc.__allowChange = true;//so the pre check wont fail because its not new and its changed.
+                        getNextSeqObservable(doc.db.db,obj.collection)
+                        .retryWhen(err => {
+                            return err;
                         })
+                        .subscribe(seq => {
+                            doc[fieldName] = seq;
+                            doc.save(function(){
+                                cb();
+                            })
+                        });
+                    },()=>{
+                        resolve(numSaved);
                     });
-                },()=>{
-                    resolve(numSaved);
-                });
-            }).catch((err)=>reject(err));
+                }).catch((err)=>reject(err));
 
+            });
         });
     };
 
 };
 
+/*
+ready()
+
+It is necessary to wait until the connection is ready before 
+allowing getNextSeqObservable to be called. else a stackoverflow occurs.
+*/
+function ready(){
+    return new Promise((resolve,reject)=>{
+        var _int = setInterval(()=>{
+            if(mongoose.connection.readyState == 1){
+                clearInterval(_int);
+                resolve();
+            }
+        },200);
+    })
+}
+
+/*
+syncEach()
+
+simple synchronous iterator. used by heal to iterate the documents that must be updated. 
+done synchronously to avoid to much contention
+
+*/
 function syncEach( items, eachFn, callbackFn ){
     console.log('syncEach')
     items = items.concat([]);//prevent mutating the passed array.
@@ -115,6 +150,11 @@ function syncEach( items, eachFn, callbackFn ){
     eachFn(items.shift(),next);
 };
 
+/*
+getNextSeqObservable()
+
+taken pretty much verbatim from here https://github.com/moltak/mongoose-autoincrement
+*/
 function getNextSeqObservable(db, name) {
     return rx.Observable.create(observable => {
         db.collection(countersCollection).findOneAndUpdate(
