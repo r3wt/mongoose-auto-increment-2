@@ -5,32 +5,42 @@
 const rx = require('rx');
 const mongoose = require('mongoose');
 
-var countersCollection = 'counters';
+var countersCollection = 'counters';//the name of the collection used to store id counters.
 
 function autoIncrement(schema, options) {
 
-    var field = {};
-    var selfheal = options.selfheal || false;
-
-    // swith to options field
     var fieldName = options.field || '_id';
-    var filter = {};
-    filter[fieldName] = {$type: 'number'};
-    field[fieldName] = {
-        type: Number,
-        unique: true,
-        partialFilterExpression: filter // index only applied if value is numeric.
-        //thus no non numeric index errors!
+
+    var definition = {
+        [fieldName]:{
+            type: Number,
+            // unique: true,
+            // sparse: true,
+            // partialFilterExpression: {
+            //     [fieldName]:{
+            //         $type: 'number',
+            //         $exists: true
+            //     }
+            // }//thus no non numeric index errors!
+        }
     };
 
-    console.log(field)
+    console.log(definition);
+    
+    // add the field to model.
+    schema.add(definition);
 
-    schema.add(field);
-
-    console.log(schema.obj);
+    schema.index({ [fieldName]: 1 },{
+        partialFilterExpression: {
+            [fieldName]:{
+                $type: 'number',
+                $exists: true
+            }
+        },
+        unique: true
+    });
 
     schema.pre('save', function (next) {
-        console.log('pre.save');
         ready().then(()=>{
 
             var doc = this;
@@ -63,7 +73,7 @@ function autoIncrement(schema, options) {
         return new Promise((resolve,reject)=>{
 
             ready().then(()=>{
-            
+                console.log('ready()');
         
                 var filter1 = {},
                     filter2 = {};
@@ -77,17 +87,20 @@ function autoIncrement(schema, options) {
                         filter2
                     ]
                 }).exec().then((docs)=>{
-
+                    console.log(docs);
                     var numSaved = docs.length;
                     syncEach(docs,(doc,cb)=>{
                         doc.__allowChange = true;//so the pre check wont fail because its not new and its changed.
-                        getNextSeqObservable(doc.db.db,obj.collection)
+                        getNextSeqObservable(doc.db.db,doc.collection.name)
                         .retryWhen(err => {
+                            console.log(err)
                             return err;
                         })
                         .subscribe(seq => {
+                            console.log('got seq %d',seq)
                             doc[fieldName] = seq;
-                            doc.save(function(){
+                            doc.save(function(err){
+                                console.log(err)
                                 cb();
                             })
                         });

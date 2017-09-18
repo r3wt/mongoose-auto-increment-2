@@ -45,5 +45,18 @@ var b = new Person({
 
 b.save(function(){
     console.log(b.id);
+
+    //now test delete id and heal
+    b.__allowChange = true;
+    b.id = null;
+    b.save(function(err){
+        console.log(err);
+        console.log(b.id);
+        if(!err){
+            Person.heal().then(function(num){
+                console.log('healed %d people',num);
+            });
+        }
+    });
 });
 
