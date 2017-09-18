@@ -14,14 +14,6 @@ function autoIncrement(schema, options) {
     var definition = {
         [fieldName]:{
             type: Number,
-            // unique: true,
-            // sparse: true,
-            // partialFilterExpression: {
-            //     [fieldName]:{
-            //         $type: 'number',
-            //         $exists: true
-            //     }
-            // }//thus no non numeric index errors!
         }
     };
 
@@ -41,9 +33,13 @@ function autoIncrement(schema, options) {
     });
 
     schema.pre('save', function (next) {
+
+        console.log('pre.save');
+
+        var doc = this;
+
         ready().then(()=>{
 
-            var doc = this;
             if (doc.db && doc.isNew && typeof doc[fieldName] === 'undefined') {
                 getNextSeqObservable(doc.db.db, doc.collection.name)
                 .retryWhen(err => {
@@ -51,16 +47,22 @@ function autoIncrement(schema, options) {
                     return err;
                 })
                 .subscribe(seq => {
-                    console.log(seq);
+                    console.log('seq = %d',seq);
                     doc[fieldName] = seq;
                     next();
                 });
             } else {
                 //heal sets doc.__allowChange to true in order to bypass this check.
+                console.log(doc.modifiedPaths());
                 if(!doc.__allowChange){
+                    console.log('not allowed to change');
                     if(doc.isModified(fieldName)){
+                        console.log('invalidating field');
                         doc.invalidate(fieldName,'You may not modify the auto-increment field `'+fieldName+'` ');
+                        doc.$ignore(fieldName);
                     }
+                }else{
+                    delete doc.__allowChange;
                 }
                 next();
             }

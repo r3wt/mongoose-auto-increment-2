@@ -49,12 +49,24 @@ b.save(function(){
     //now test delete id and heal
     b.__allowChange = true;
     b.id = null;
-    b.save(function(err){
+    b.save(function(err,b2){
         console.log(err);
-        console.log(b.id);
+        console.log(b2.id);
         if(!err){
             Person.heal().then(function(num){
                 console.log('healed %d people',num);
+
+                //finally test delete id without override. should trigger error
+                Person.findOne({ _id: b2._id },(err,b3)=>{
+                    console.log(b3.id);
+                    b3.id = null;
+                    b3.save(function(err,doc,numAffected){
+                        console.log(err);//should error
+                        console.log(doc);
+                        console.log(numAffected);
+                    })
+                });
+
             });
         }
     });
