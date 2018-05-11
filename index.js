@@ -10,7 +10,7 @@ var countersCollection = 'counters';//the name of the collection used to store i
 function autoIncrement(schema, options) {
 
     var fieldName = options.field || '_id';
-    
+
     // add the field to model.
     schema.add({
         [fieldName]:{
@@ -30,8 +30,6 @@ function autoIncrement(schema, options) {
 
     schema.pre('save', function (next) {
 
-        console.log('pre.save');
-
         var doc = this;
 
         ready().then(()=>{
@@ -43,17 +41,13 @@ function autoIncrement(schema, options) {
                     return err;
                 })
                 .subscribe(seq => {
-                    console.log('seq = %d',seq);
                     doc[fieldName] = seq;
                     next();
                 });
             } else {
                 //heal sets doc.__allowChange to true in order to bypass this check.
-                console.log(doc.modifiedPaths());
                 if(!doc.__allowChange){
-                    console.log('not allowed to change');
                     if(doc.isModified(fieldName)){
-                        console.log('invalidating field');
                         doc.invalidate(fieldName,'You may not modify the auto-increment field `'+fieldName+'` ');
                         // doc.$ignore(fieldName);
                     }
@@ -67,12 +61,8 @@ function autoIncrement(schema, options) {
     });
 
     schema.statics.heal = function(){
-        console.log('schema.statics.heal');
         return new Promise((resolve,reject)=>{
-
             ready().then(()=>{
-                console.log('ready()');
-
                 // this = the mongoose model
                 this.find({
                     $or: [
@@ -80,7 +70,6 @@ function autoIncrement(schema, options) {
                         { [fieldName] : null }
                     ]
                 }).exec().then((docs)=>{
-                    console.log(docs);
                     var numSaved = docs.length;
                     syncEach(docs,(doc,cb)=>{
                         doc.__allowChange = true;//so the pre check wont fail because its not new and its changed.
@@ -90,7 +79,6 @@ function autoIncrement(schema, options) {
                             return err;
                         })
                         .subscribe(seq => {
-                            console.log('got seq %d',seq)
                             doc[fieldName] = seq;
                             doc.save(function(err){
                                 console.log(err)
@@ -111,16 +99,14 @@ function autoIncrement(schema, options) {
 /*
 ready()
 
-It is necessary to wait until the connection is ready before 
+It is necessary to wait until the connection is ready before
 allowing getNextSeqObservable to be called. else a stackoverflow occurs.
 */
 function ready(){
-    console.log('ready()');
     return new Promise((resolve,reject)=>{
         var _int = setInterval(()=>{
             if(mongoose.connection.readyState == 1 || forceReady){
                 clearInterval(_int);
-                console.log('mongoose connected ready().resolve()')
                 resolve();
             }
         },200);
@@ -130,16 +116,15 @@ function ready(){
 /*
 syncEach()
 
-simple synchronous iterator. used by heal to iterate the documents that must be updated. 
+simple synchronous iterator. used by heal to iterate the documents that must be updated.
 done synchronously to avoid too much contention
 
 */
 function syncEach( items, eachFn, callbackFn ){
-    console.log('syncEach')
     items = items.concat([]);//prevent mutating the passed array.
-    var results = [], 
+    var results = [],
         errors = [];
-        
+
     var next = function (error,result){
         if(error != null) {
             errors.push(error);
@@ -154,7 +139,7 @@ function syncEach( items, eachFn, callbackFn ){
             eachFn(items.shift(),next);
         }
     };
-    
+
     eachFn(items.shift(),next);
 };
 
