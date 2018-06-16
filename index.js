@@ -30,7 +30,7 @@ function autoIncrement(schema, options) {
 
     schema.pre('save', function (next) {
 
-        console.log('pre.save');
+        // console.log('pre.save');
 
         var doc = this;
 
