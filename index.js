@@ -10,18 +10,18 @@ var countersCollection = 'counters';//the name of the collection used to store i
 function autoIncrement(schema, options) {
 
     var fieldName = options.field || '_id';
-    
+    var prefix = options.prefix || null;
     // add the field to model.
     schema.add({
         [fieldName]:{
-            type: Number,
+            type: prefix ? String : Number,
         }
     });
 
     schema.index({ [fieldName]: 1 },{
         partialFilterExpression: {
             [fieldName]:{
-                $type: 'number',
+                $type: prefix ? 'string' : 'number',
                 $exists: true
             }
         },
