@@ -38,22 +38,19 @@ function autoIncrement(schema, options) {
 
             if (doc.db && doc.isNew && typeof doc[fieldName] === 'undefined') {
                 getNextSeqObservable(doc.db.db, doc.collection.name)
-                .retryWhen(err => {
-                    console.log(err);
-                    return err;
-                })
+                .retryWhen(err => err)
                 .subscribe(seq => {
-                    console.log('seq = %d',seq);
+                    // console.log('seq = %d',seq);
                     doc[fieldName] = prefix ? prefix + seq : seq;
                     next();
                 });
             } else {
                 //heal sets doc.__allowChange to true in order to bypass this check.
-                console.log(doc.modifiedPaths());
+                // console.log(doc.modifiedPaths());
                 if(!doc.__allowChange){
-                    console.log('not allowed to change');
+                    // console.log('not allowed to change');
                     if(doc.isModified(fieldName)){
-                        console.log('invalidating field');
+                        // console.log('invalidating field');
                         doc.invalidate(fieldName,'You may not modify the auto-increment field `'+fieldName+'` ');
                         // doc.$ignore(fieldName);
                     }
@@ -67,11 +64,11 @@ function autoIncrement(schema, options) {
     });
 
     schema.statics.heal = function(){
-        console.log('schema.statics.heal');
+        // console.log('schema.statics.heal');
         return new Promise((resolve,reject)=>{
 
             ready().then(()=>{
-                console.log('ready()');
+                // console.log('ready()');
 
                 // this = the mongoose model
                 this.find({
@@ -80,17 +77,14 @@ function autoIncrement(schema, options) {
                         { [fieldName] : null }
                     ]
                 }).exec().then((docs)=>{
-                    console.log(docs);
+                    // console.log(docs);
                     var numSaved = docs.length;
                     syncEach(docs,(doc,cb)=>{
                         doc.__allowChange = true;//so the pre check wont fail because its not new and its changed.
                         getNextSeqObservable(doc.db.db,doc.collection.name)
-                        .retryWhen(err => {
-                            console.log(err)
-                            return err;
-                        })
+                        .retryWhen(err => err)
                         .subscribe(seq => {
-                            console.log('got seq %d',seq)
+                            // console.log('got seq %d',seq)
                             doc[fieldName] = seq;
                             doc.save(function(err){
                                 console.log(err)
@@ -115,12 +109,12 @@ It is necessary to wait until the connection is ready before
 allowing getNextSeqObservable to be called. else a stackoverflow occurs.
 */
 function ready(){
-    console.log('ready()');
+    // console.log('ready()');
     return new Promise((resolve,reject)=>{
         var _int = setInterval(()=>{
             if(mongoose.connection.readyState == 1 || forceReady){
                 clearInterval(_int);
-                console.log('mongoose connected ready().resolve()')
+                // console.log('mongoose connected ready().resolve()')
                 resolve();
             }
         },200);
@@ -135,7 +129,7 @@ done synchronously to avoid too much contention
 
 */
 function syncEach( items, eachFn, callbackFn ){
-    console.log('syncEach')
+    // console.log('syncEach')
     items = items.concat([]);//prevent mutating the passed array.
     var results = [], 
         errors = [];
