@@ -44,7 +44,7 @@ function autoIncrement(schema, options) {
                 })
                 .subscribe(seq => {
                     console.log('seq = %d',seq);
-                    doc[fieldName] = seq;
+                    doc[fieldName] = prefix ? prefix + seq : seq;
                     next();
                 });
             } else {
